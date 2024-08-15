@@ -1,0 +1,23 @@
+name: "Queue Job Checker"
+description: "Checks if specific jobs are running in GitHub Actions workflows."
+inputs:
+  queue-jobs:
+    description: "Comma-separated list of job names to check."
+    required: true
+  min-wait-time:
+    description: "Minimum wait time in seconds."
+    required: false
+    default: 30
+  max-wait-time:
+    description: "Maximum wait time in seconds."
+    required: false
+    default: 60
+  github-token:
+    description: "GitHub token for authentication."
+    required: true
+outputs:
+  status:
+    description: "The status of the queue check."
+runs:
+  using: "node18"
+  main: "index.js"
