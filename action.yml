@@ -14,7 +14,8 @@ inputs:
     default: 60
   github-token:
     description: "GitHub token for authentication."
-    required: true
+    required: false
+    default: ${{ github.token }}
 outputs:
   status:
     description: "The status of the queue check."
