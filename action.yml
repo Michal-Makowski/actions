@@ -20,5 +20,5 @@ outputs:
   status:
     description: "The status of the queue check."
 runs:
-  using: "node18"
+  using: "node20"
   main: "index.js"
