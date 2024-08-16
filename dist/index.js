@@ -31082,93 +31082,127 @@ const core = __nccwpck_require__(8148);
 const github = __nccwpck_require__(809);
 
 async function waitRandomTime(minWaitTime, maxWaitTime, queueJobs) {
-	const waitTime =
-		Math.floor(Math.random() * (maxWaitTime - minWaitTime + 1)) + minWaitTime;
-	console.log(
-		`Job with keys ${queueJobs.join(
-			", "
-		)} is still running. Waiting for ${waitTime} seconds...`
-	);
-	await new Promise(resolve => setTimeout(resolve, waitTime * 1000));
+    const waitTime =
+        Math.floor(Math.random() * (maxWaitTime - minWaitTime + 1)) + minWaitTime;
+    console.log(
+        `\u001b[34m[Job Queue Action]\u001b[32m 🕒 Job with names \u001b[0m${queueJobs.join(
+            ", "
+        )} \u001b[32mis still running. Waiting for ${waitTime} seconds...`
+    );
+    console.log('');
+    await new Promise(resolve => setTimeout(resolve, waitTime * 1000));
 }
 
 async function run() {
-	try {
-		const queueJobsInput = core.getInput("queue-jobs");
-		const queueJobs = queueJobsInput.split(",").map(job => job.trim());
-		const minWaitTime = parseInt(core.getInput("min-wait-time")) || 30;
-		const maxWaitTime = parseInt(core.getInput("max-wait-time")) || 60;
-		const token = core.getInput("github-token") || process.env.GITHUB_TOKEN;
+    try {
+        const queueJobsInput = core.getInput("queue-jobs");
+        const queueJobs = queueJobsInput.split(";").map(job => job.trim());
+        const minWaitTime = parseInt(core.getInput("min-wait-time")) || 30;
+        const maxWaitTime = parseInt(core.getInput("max-wait-time")) || 60;
+        const token = core.getInput("github-token") || process.env.GITHUB_TOKEN;
 
-		if (isNaN(minWaitTime) || minWaitTime <= 0) {
-			throw new Error("min-wait-time must be a positive integer");
-		}
-		if (isNaN(maxWaitTime) || maxWaitTime <= 0 || maxWaitTime < minWaitTime) {
-			throw new Error(
-				"max-wait-time must be a positive integer and greater than or equal to min-wait-time"
-			);
-		}
-		if (!token) {
-			throw new Error("github-token input is required");
-		}
+        // Validate inputs
+        if (isNaN(minWaitTime) || minWaitTime <= 0) {
+            console.error("::error title=🕒 Job Queue Action::min-wait-time must be a positive integer");
+            process.exit(1);
+        }
+        if (isNaN(maxWaitTime) || maxWaitTime <= 0 || maxWaitTime < minWaitTime) {
+            console.error("::error title=🕒 Job Queue Action::max-wait-time must be a positive integer and greater than or equal to min-wait-time");
+            process.exit(1);
+        }
+        if (!token) {
+            console.error("::error title=🕒 Job Queue Action::github-token input is required");
+            process.exit(1);
+        }
 
-		const octokit = github.getOctokit(token);
-		const { owner, repo } = github.context.repo;
+        const octokit = github.getOctokit(token);
+        const { owner, repo } = github.context.repo;
 
-		while (true) {
-			try {
-				const { data: workflows } =
-					await octokit.rest.actions.listWorkflowRunsForRepo({
-						owner,
-						repo,
-						status: "in_progress",
-					});
+        while (true) {
+            try {
 
-				const isJobRunning = await Promise.all(
-					workflows.workflow_runs.map(async workflow => {
-						try {
-							const { data: jobs } =
-								await octokit.rest.actions.listJobsForWorkflowRun({
-									owner,
-									repo,
-									run_id: workflow.id,
-								});
-							return jobs.jobs.some(
-								job =>
-									queueJobs.includes(job.name) && job.status === "in_progress"
-							);
-						} catch (error) {
-							console.error(
-								`Error fetching job data for workflow ${workflow.id}: ${error.message}`
-							);
-							return false;
-						}
-					})
-				);
+                // Fetch workflow runs with status 'queued'
+                const { data: queuedWorkflows } =
+                    await octokit.rest.actions.listWorkflowRunsForRepo({
+                        owner,
+                        repo,
+                        status: "queued",
+                    });
+                console.log(`\u001b[34m[Job Queue Action]\u001b[32m 🕒 Retrieved queued \u001b[0m${queuedWorkflows.workflow_runs.length} \u001b[32mworkflow runs`);
 
-				if (!isJobRunning.includes(true)) {
-					break;
-				}
+                // Fetch workflow runs with status 'in_progress'
+                const { data: inProgressWorkflows } =
+                    await octokit.rest.actions.listWorkflowRunsForRepo({
+                        owner,
+                        repo,
+                        status: "in_progress",
+                    });
+                console.log(`\u001b[34m[Job Queue Action]\u001b[32m 🕒 Retrieved in_progras \u001b[0m${inProgressWorkflows.workflow_runs.length} \u001b[32mworkflow runs`);
 
-				await waitRandomTime(minWaitTime, maxWaitTime, queueJobs);
-			} catch (error) {
-				console.error(`Error checking running workflows: ${error.message}`);
-			}
-		}
+                // Combine the results
+                const workflows = [
+                    ...queuedWorkflows.workflow_runs,
+                    ...inProgressWorkflows.workflow_runs,
+                ];
 
-		console.log(
-			`No job with keys ${queueJobs.join(
-				", "
-			)} is running. Proceeding with the deployment.`
-		);
-		core.setOutput("status", "ready");
-	} catch (error) {
-		core.setFailed(`Action failed with error: ${error.message}`);
-	}
+                console.log(`\u001b[34m[Job Queue Action]\u001b[32m 🕒 Retrieved a total of \u001b[0m${workflows.length} \u001b[32mworkflow runs`);
+                // Check if any specified jobs are still running
+                const isJobRunning = await Promise.all(
+                    workflows.map(async workflow => {
+                        try {
+                            const { data: jobs } =
+                                await octokit.rest.actions.listJobsForWorkflowRun({
+                                    owner,
+                                    repo,
+                                    run_id: workflow.id,
+                                });
+
+                            console.log(`\u001b[34m[Job Queue Action]\u001b[32m 🕒`)
+                            console.log(`\u001b[34m[Job Queue Action]\u001b[32m 🕒 Workflow \u001b[0m${workflow.name} #${workflow.run_number} \u001b[32mhas \u001b[0m${jobs.jobs.length} \u001b[32mjobs`);
+
+                            jobs.jobs.some(job =>{
+                                console.log(`\u001b[34m[Job Queue Action]\u001b[32m 🕒 Job Name: \u001b[0m${job.name} `)
+                                console.log(`\u001b[34m[Job Queue Action]\u001b[32m 🕒 Job Status: \u001b[0m${job.status} `)
+                            });
+
+                            return jobs.jobs.some(job => {
+                                return queueJobs.includes(job.name) && job.status !== "completed";
+                            });
+                        } catch (error) {
+                            console.error(
+                                `::error title=🕒 Job Queue Action::Error by fetching job data for workflow ${workflow.id}: ${error.message}`
+                            );
+                            process.exit(1);
+                            return false;
+                        }
+                    })
+                );
+
+                // Exit the loop if no monitored jobs are running
+                if (!isJobRunning.includes(true)) {
+                    break;
+                }
+
+                await waitRandomTime(minWaitTime, maxWaitTime, queueJobs);
+            } catch (error) {
+                console.error(`::error title=🕒 Job Queue Action::Error byChecking running workflows: ${error.message}`);
+                process.exit(1);
+            }
+        }
+
+        console.log(
+            `\u001b[34m[Job Queue Action]\u001b[32m 🕒 No job with names \u001b[0m${queueJobs.join(
+                ", "
+            )} \u001b[32mis running. Proceeding with the deployment.`
+        );
+        core.setOutput("status", "ready");
+    } catch (error) {
+        console.error(`::error title=🕒 Job Queue Action::Action failed with error: ${error.message}`);
+        process.exit(1);
+    }
 }
 
 run();
-
 })();
 
 module.exports = __webpack_exports__;
