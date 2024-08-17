@@ -31153,7 +31153,7 @@ async function run() {
 		}
 
 		// Wait for a random time before starting the action
-		await waitBeforeStart(minWaitBeforeStartTime, maxWaitBeforeStartTime);
+		//	await waitBeforeStart(minWaitBeforeStartTime, maxWaitBeforeStartTime);
 
 		const octokit = github.getOctokit(token);
 		const { owner, repo } = github.context.repo;
@@ -31173,6 +31173,7 @@ async function run() {
 				// Check if any specified jobs are still running
 				const isJobRunning = await Promise.all(
 					workflows.workflow_runs.map(async workflow => {
+						console.log(`workflow status: ${workflow.status}`);
 						try {
 							const { data: jobs } =
 								await octokit.rest.actions.listJobsForWorkflowRun({
