@@ -81,39 +81,18 @@ async function run() {
 		while (true) {
 			try {
 				// Fetch workflow runs with status 'queued'
-				const { data: queuedWorkflows } =
+				const { data: workflows } =
 					await octokit.rest.actions.listWorkflowRunsForRepo({
 						owner,
 						repo,
-						status: "queued",
 					});
 				console.log(
-					`\u001b[34m[Job Queue Action]\u001b[32m 🕒 Retrieved queued \u001b[0m${queuedWorkflows.workflow_runs.length} \u001b[32mworkflow runs`
+					`\u001b[34m[Job Queue Action]\u001b[32m 🕒 Retrieved \u001b[0m${queuedWorkflows.workflow_runs.length} \u001b[32mworkflow runs`
 				);
 
-				// Fetch workflow runs with status 'in_progress'
-				const { data: inProgressWorkflows } =
-					await octokit.rest.actions.listWorkflowRunsForRepo({
-						owner,
-						repo,
-						status: "in_progress",
-					});
-				console.log(
-					`\u001b[34m[Job Queue Action]\u001b[32m 🕒 Retrieved in_progras \u001b[0m${inProgressWorkflows.workflow_runs.length} \u001b[32mworkflow runs`
-				);
-
-				// Combine the results
-				const workflows = [
-					...queuedWorkflows.workflow_runs,
-					...inProgressWorkflows.workflow_runs,
-				];
-
-				console.log(
-					`\u001b[34m[Job Queue Action]\u001b[32m 🕒 Retrieved a total of \u001b[0m${workflows.length} \u001b[32mworkflow runs`
-				);
 				// Check if any specified jobs are still running
 				const isJobRunning = await Promise.all(
-					workflows.map(async workflow => {
+					workflows.workflow_runs.map(async workflow => {
 						try {
 							const { data: jobs } =
 								await octokit.rest.actions.listJobsForWorkflowRun({
