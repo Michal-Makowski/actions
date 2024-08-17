@@ -31167,7 +31167,7 @@ async function run() {
 						repo,
 					});
 				console.log(
-					`\u001b[34m[Job Queue Action]\u001b[32m 🕒 Retrieved \u001b[0m${queuedWorkflows.workflow_runs.length} \u001b[32mworkflow runs`
+					`\u001b[34m[Job Queue Action]\u001b[32m 🕒 Retrieved \u001b[0m${workflows.workflow_runs.length} \u001b[32mworkflow runs`
 				);
 
 				// Check if any specified jobs are still running
