@@ -7,11 +7,19 @@ inputs:
   min-wait-time:
     description: "Minimum wait time in seconds."
     required: false
-    default: 30
+    default: 15
   max-wait-time:
     description: "Maximum wait time in seconds."
     required: false
-    default: 60
+    default: 30
+  min-wait-before-start-time:
+    description: "Minimum wait time before start in seconds."
+    required: false
+    default: 15
+  max-wait-before-start-time:
+    description: "Maximum wait time before start in seconds."
+    required: false
+    default: 30
   github-token:
     description: "GitHub token for authentication."
     required: false
